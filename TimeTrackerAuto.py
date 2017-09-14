@@ -9,33 +9,12 @@ import win32evtlog
 import datetime as dt
 import pandas as pd
 import os
-#from tabulate import tabulate
-#from time import mktime
 
 server =  os.environ['COMPUTERNAME']# name of the target computer to get event logs
 logtype = 'System'
 hand = win32evtlog.OpenEventLog(server,logtype)
 flags = win32evtlog.EVENTLOG_BACKWARDS_READ|win32evtlog.EVENTLOG_SEQUENTIAL_READ
 total = win32evtlog.GetNumberOfEventLogRecords(hand)
-
-#==============================================================================
-# while True:
-#     events = win32evtlog.ReadEventLog(hand, flags,0)
-#     if events:
-#         for event in events:
-#             if event.EventID == "7002":
-#                 print 'Event Category:', event.EventCategory
-#                 print 'Time Generated:', event.TimeGenerated
-#                 print 'Source Name:', event.SourceName
-#                 print 'Event ID:', event.EventID
-#                 print 'Event Type:', event.EventType
-#                 data = event.StringInserts
-#                 if data:
-#                     print 'Event Data:'
-#                     for msg in data:
-#                         print msg
-#                 break
-#==============================================================================
 
 def weekdays():
     return [(dt.datetime.now().date()-dt.timedelta(days = i)).strftime('%m/%d/%y') for i in range(dt.datetime.now().weekday()+1)]
@@ -49,14 +28,8 @@ while (flag!=2*len(weekdays()) - 1) and (i<1000):
     i+=1
     for event in events:
         if event.EventID in [7001,7002] and event.TimeGenerated.Format()[:8] in weekdays() :
-#==============================================================================
-#             print 'Time Generated:', event.TimeGenerated.Format()[-8:]
-#             print 'Source Name:', event.SourceName
-#             print 'Event ID:', event.EventID
-#==============================================================================
             if event.TimeGenerated.Format()[:8] in list(times['Date']):
                 flag+=1
-                #print 'formating'
                 if event.EventID == 7001:
                     times.ix[times.index[times.Date == event.TimeGenerated.Format()[:8]][0], 'In'] = event.TimeGenerated.Format()[-8:]
                 else:
@@ -64,7 +37,6 @@ while (flag!=2*len(weekdays()) - 1) and (i<1000):
                 times.reset_index(drop = True, inplace = True)
             else:
                 flag+=1
-                #print 'Appending'
                 if event.EventID == 7001:
                     #print 'hitting Login'
                     temp = pd.DataFrame([[event.TimeGenerated.Format()[:8], event.TimeGenerated.Format()[-8:], None]], columns = ['Date','In','Out'])
@@ -74,10 +46,8 @@ while (flag!=2*len(weekdays()) - 1) and (i<1000):
                     times = times.append(temp)
                 times.reset_index(drop = True, inplace = True)
             print '\n'
-#times.reset_index(drop = True, inplace = True)
 times.ix[times.index[times.Date == weekdays()[0]][0], 'Out'] = dt.datetime.now().time().strftime('%H:%M:%S')
 times['WorkTime'] = pd.to_datetime(times['Out'], format = '%H:%M:%S') - pd.to_datetime(times['In'], format = '%H:%M:%S')
-#print sum(times['WorkTime'])
 total = reduce(lambda x,y :x+y, list(times['WorkTime']))
 print times
 print '\nSpent Time :',total.days*24+total.seconds//3600,'Hours,', (total.seconds%3600)//60, 'Minutes '
